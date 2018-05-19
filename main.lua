@@ -9,15 +9,18 @@ end
 
 function lovr.draw()
 	local time = lovr.timer.getTime()
-	-- local zPos = select(3, lovr.headset.getPosition())
-	local size = .25
 
-	for col = -2, 2 do
-		for row = 0, 3 do
-			local z = row + (math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
-			lovr.graphics.setColor(hsv(.08 * (row + col) + lovr.timer.getTime() * .5, .5, 1))
-			lovr.graphics.sphere(col, row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075), z, size + (math.sin(time + col + row) * .025))--x, y, z, size, angle, ax, ay, az)
-			-- lovr.graphics.sphere(i, j + (math.sin(lovr.headset.getPosition() * 3 + i + (j * .5)) * .2), -3, .25)--x, y, z, size, angle, ax, ay, az)
+	for dep = -5, 5 do
+		for col = -2, 2 do
+			for row = 0, 3 do
+				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
+				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+				local size = .2 + (math.sin(time + col + row) * .05)
+
+				lovr.graphics.setColor(r, g, b)
+				lovr.graphics.sphere(col, y, z, size, 0, 0, 0, 0, 10)
+			end
 		end
 	end
 end
