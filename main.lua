@@ -4,12 +4,11 @@ wave = require 'wave'
 function lovr.load()
 	shader = require('lighting')()
 	lovr.graphics.setShader(shader)
-	music = wave:newSource('song2.ogg', 'stream')
-	music:setBPM(170)
-	song = lovr.audio.newSource('song2.ogg')
-	song:play()
-	-- music:parse()
-	-- music:setIntensity(20)
+	music = wave:newSource('cinders.ogg', 'stream')
+	music:parse()
+	music:setIntensity(20)
+	music:detectBPM()
+	music:play();
 	balls = {}
 	balls.size = .2
 	runningTime = 0
@@ -18,25 +17,14 @@ end
 function lovr.update(dt)
 	flux.update(lovr.timer.getDelta())
 	music:update(dt)
-
-	-- music:onBeat(function()
-	-- 	pulseBalls()
-	-- end)
-
-	local t = lovr.timer.getTime()
-	if (t - runningTime) > .345 then
-		runningTime = t
-		pulseBalls()
-	end
 end
 
 function lovr.draw()
-	-- lovr.graphics.setWireframe(true)
-
-	defaultMovement()
+	balls.size = music:getEnergy() * .06
+	drawBalls()
 end
 
-function defaultMovement()
+function drawBalls()
 	local time = lovr.timer.getTime()
 	for dep = -5, 5 do
 		for col = -2, 2 do
@@ -44,7 +32,6 @@ function defaultMovement()
 				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
 				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
 				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
-				-- balls.size = balls.size-- + (math.sin(time + col + row) * .05)
 
 				lovr.graphics.setColor(r, g, b)
 				lovr.graphics.sphere(col, y, z, balls.size, 0, 0, 0, 0, 10)
@@ -54,10 +41,11 @@ function defaultMovement()
 end
 
 function pulseBalls()
+	balls.size = music:getEnergy()
 	local oSize = balls.size
 	local nSize = balls.size * 1.15
 	flux.to(balls, 0.1, { size = nSize })
-	flux.to(balls, 0.1, { size = oSize }):delay(0.05)
+	flux.to(balls, 0.1, { size = oSize }):delay(0.15)
 end
 
 function hsv(h, s, v)

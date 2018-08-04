@@ -1,5 +1,5 @@
 --
--- lovebpm
+-- lovrbpm
 --
 -- Copyright (c) 2016 rxi
 --
@@ -7,13 +7,13 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-local lovebpm = { _version = "0.0.0" }
+local lovrbpm = { _version = "0.0.0" }
 
 local Track = {}
 Track.__index = Track
 
 
-function lovebpm.newTrack()
+function lovrbpm.newTrack()
   local self = setmetatable({}, Track)
   self.source = nil
   self.offset = 0
@@ -32,7 +32,7 @@ function lovebpm.newTrack()
 end
 
 
-function lovebpm.detectBPM(filename, opts)
+function lovrbpm.detectBPM(filename, opts)
   -- Init options table
   opts = opts or {}
   local t = { minbpm = 75, maxbpm = 300 }
@@ -44,7 +44,7 @@ function lovebpm.detectBPM(filename, opts)
   -- Load data
   local data = filename
   if type(data) == "string" then
-    data = love.sound.newSoundData(data)
+    data = lovr.sound.newSoundData(data)
   else
     data = filename
   end
@@ -105,7 +105,7 @@ function Track:load(filename)
   -- Init new source
   -- "static" mode is used here instead of "stream" as the time returned by
   -- :tell() seems to go out of sync after the first loop otherwise
-  self.source = love.audio.newSource(filename, "static")
+  self.source = lovr.audio.newSource(filename, "static")
   self:setLooping(self.looping)
   self:setVolume(self.volume)
   self:setPitch(self.pitch)
@@ -245,7 +245,7 @@ function Track:update()
 
   -- Get delta time: getTime() is used for time-keeping as the value returned by
   -- :tell() is updated at a potentially lower rate than the framerate
-  local t = love.timer.getTime()
+  local t = lovr.timer.getTime()
   local dt = self.lastUpdateTime and (t - self.lastUpdateTime) or 0
   self.lastUpdateTime = t
 
@@ -332,4 +332,4 @@ function Track:update()
 end
 
 
-return lovebpm
+return lovrbpm

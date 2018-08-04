@@ -7,12 +7,12 @@
 
 local wave, waveObject = {
   overwrite = false,
-  
+
   energyRatio = 1.2, --energy peak detection threshold
   trainSize = 108, --train size for convolution, blocks of 1024 (430 = 10s)
-  
+
   minLength = 2048 --minimum length, in samples, to parse audio
-  
+
 }, {}
 setmetatable(wave, wave)
 
@@ -52,9 +52,9 @@ function wave:newSource(path, type)
 		pitch     = 1,
 		volume    = 1
 	}
-  
+
   setmetatable(_object, { __index = waveObject })
-  
+
   if _object.type == "static" then
     _object:parse()
   end
@@ -65,22 +65,22 @@ end
 --[[ Public - Source ]]--
 
 function waveObject:play(pitched)
-  
+
   removeStopped(self.instances)
 	if self._paused then self:stop() end
-  
+
   self._paused = false
-  
-	local instance = self.data or lovr.audio.newSource(self.path)
+
+	local instance = lovr.audio.newSource(self.data or self.path, self.type or "stream")
 
 	-- overwrite instance:stop() and instance:play()
 	if not (playInstance and stopInstance) then
-		playInstance = getmetatable(instance).play  
+		playInstance = getmetatable(instance).play
 
 		stopInstance = getmetatable(instance).stop
-    
+
     isPlaying = getmetatable(instance).isPlaying
-    
+
     if wave.overwrite then
       getmetatable(instance).play = error
       getmetatable(instance).stop = function(this)
@@ -97,24 +97,24 @@ function waveObject:play(pitched)
 
 	self.instances[instance] = instance
 	playInstance(instance)
-	
+
   if self:isMusic() or self:isParsed() then
     self.instance = instance
     if self:isMusic() then --start listening to beat
-      
+
       self.duration = self.duration or self.instance:getDuration()
       self.previousFrame = lovr.timer.getTime() * 1000
       self.lastTime = 0
       self.time = 0
       self.beat = 0
       self.beatTime = 0
-      
+
     end
     return self
   else
     return self
   end
-  
+
 end
 
 function waveObject:stop()
@@ -160,9 +160,8 @@ end
 
 function waveObject:parse()
   assert(not self.data, "Audio is already parsed.")
-  self.data = lovr.audio.newSource(self.path)
-  self.length  = self.data:getDuration('samples')
-  -- self.length = self.data:getSampleCount()
+  self.data = lovr.data.newSoundData(self.path)
+  self.length = self.data:getSampleCount()
   self.duration = self.data:getDuration()
   return self
 end
@@ -234,7 +233,7 @@ end
 --// Get/set properties
 for _, property in ipairs{'looping', 'pitch', 'volume'} do
 	local name = property:sub(1,1):upper() .. property:sub(2)
-  
+
 	waveObject['get' .. name] = function(self)
 		return self[property]
 	end
@@ -262,13 +261,13 @@ for _, property in ipairs{'pitch', 'volume'} do
 end
 
 function waveObject:tone(offset)
-  
+
   local pitch = self:getTargetPitch() or self:getPitch()
-  
+
   pitch = pitch * (tr2 ^ offset)
-  
+
   return pitch
-  
+
 end
 
 function waveObject:octave(offset) return self:tone(offset * 12) end
@@ -277,42 +276,42 @@ function waveObject:octave(offset) return self:tone(offset * 12) end
 
 function waveObject:detectBPM()
   assert(self:isParsed(), "Parse audio before enabling beat detection.")
-  
+
   local length = self.length
   local size = math.floor(length/1024)
-  
+
   self.detector = {
-    
+
     length = length,
     e1024 = {}, --size
     e44100 = {}, --size
     energyPeak = {}, --size + 21
-    
+
     size = size
   }
-  
+
   for i=0, size + 21 do
     self.detector.energyPeak[i] = 0
   end
-  
+
   self:setBPM( self:calculateBPM() ) --heavy stuff
-  
+
   return self
 end
 
 function waveObject:calculateEnergy(offset, size, limiter)
-  
+
   local _energy = 0
   for i = offset, offset + size do
     _energy = _energy + (self.data:getSample(i) ^ 2)/ (limiter or size);
   end
-  
+
   return _energy
 end
 
 function waveObject:normalizeSignal(signal, size, maxValue)
   local max = 0
-  
+
   for i = 0, size do
     if (math.abs(signal[i]) > max) then
       max = math.abs(signal[i])
@@ -349,7 +348,7 @@ end
 function waveObject:calculateBPM()
 
   local _d = self.detector
-  
+
   local _size = _d.size --length/1024
 
   --calculate instant energy
@@ -373,7 +372,7 @@ function waveObject:calculateBPM()
   _d.e44100[0] = sum / 43;
 
   --fill others
-  
+
   for i = 1, _size do
     sum = sum - _d.e1024[i - 1] + _d.e1024[i + 42] --because 42 is the only answer
     _d.e44100[i] = sum / 43;
@@ -386,9 +385,9 @@ function waveObject:calculateBPM()
     -- -21 centers e1024 on e44100's second
 
     if (_d.e1024[i] > wave.energyRatio * _d.e44100[i-21]) then
-      
+
       _d.energyPeak[i] = 1
-      
+
     end
 
   end
@@ -434,7 +433,7 @@ function waveObject:calculateBPM()
       occT[T[i]] = occT[T[i]] + 1
     end
   end
-  
+
 
   local occMax = 0
 
@@ -469,16 +468,16 @@ function waveObject:calculateBPM()
 
   --last step
 
-  local bpm = 60 / (avgOccT * (1024/44100)) --FINALLY WE GOT IT WOOHOO
-  
-  while bpm < 90 or bpm > 180 do --TEST - REMOVE
+  local bpm = 60 / (avgOccT * (1024/44100))
+
+  while bpm < 90 or bpm > 180 do --clamp at a reasonable bpm
     if bpm < 90 then
       bpm = bpm * 2
     else
       bpm = bpm * .5
     end
   end
-  
+
   return math.floor(bpm + .5)
 end
 
@@ -489,22 +488,22 @@ function waveObject:update(dt)
     if self:isMusic() then self:updateBeat(dt) end
     if self:isParsed() then self:updateEnergy(dt) end
   end
-  
+
   self:updateProperties(dt)
-  
+
   return self
 end
 
 function waveObject:updateBeat(dt)
   local _instance = self.instances[self.instance]
   if not _instance then return self end
-  
+
   local _offset = lovr.timer.getTime() * 1000
-  
+
   local _elapsedBeats = 0
-  
+
   self.time = self.time + _offset - self.previousFrame
-  
+
   self.previousFrame = _offset
   local _position = _instance:tell("seconds") * 1000
   if _position < self.lastTime then --music looped
@@ -516,43 +515,43 @@ function waveObject:updateBeat(dt)
     self.time = (self.time + (_position))/2
     self.lastTime = _position
   end
-  
+
   self.beatTime = self:calculateBeat()
-  
+
   local _beat = math.floor(self.beatTime)
   _elapsedBeats = _elapsedBeats + _beat - self.beat
   self.beat = _beat
-  
+
   if self.onBeat then
     for i = 1, _elapsedBeats do
-      self.onBeat()
+      self:onBeat()
     end
   end
-  
+
   return self
 end
 
 function waveObject:updateEnergy(dt)
   local _instance = self.instances[self.instance]
   if not _instance then return self end
-  
+
   local _sample = _instance:tell( "samples" )
   local size = 1024
   if _sample > size then
-    
+
     local _energy = self:calculateEnergy(_sample, size, self.intensity)
-    self.energy = lerp(self.energy, _energy, 10*dt)
-     
+    self.energy = lerp(self.energy, _energy, 12 * dt)
+
   end
   return self
 end
 
 function waveObject:updateProperties(dt)
-  
+
   if self:getTargetPitch() then
     self:setPitch(lerp(self:getPitch(), self:getTargetPitch(), 2*dt))
   end
-  
+
   if self:getTargetVolume() then
     self:setVolume(
       lerp(
@@ -566,7 +565,7 @@ function waveObject:updateProperties(dt)
     self.isFadingOut = nil
     self:pause()
   end
-  
+
 end
 
 --// Checks
@@ -576,7 +575,7 @@ function waveObject:isParsed() return (self.data and self.duration > 10) and tru
 
 function waveObject:isPaused() return self._paused end
 
-function waveObject:isPlaying() 
+function waveObject:isPlaying()
   local _playing = false
   for s in pairs(self.instances) do
 		if s then _playing = true end --if there's at least one instance
