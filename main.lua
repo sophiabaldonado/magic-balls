@@ -1,5 +1,6 @@
 flux = require 'flux'
 wave = require 'wave'
+icosphere = require 'icosphere'
 
 function lovr.load()
 	shader = require('lighting')()
@@ -12,29 +13,64 @@ function lovr.load()
 	balls = {}
 	balls.size = .2
 	runningTime = 0
+	vertices, indices = icosphere(2)
+	mesh = lovr.graphics.newMesh(vertices, 'triangles')
+	mesh:setVertexMap(indices)
 end
 
 function lovr.update(dt)
 	flux.update(lovr.timer.getDelta())
 	music:update(dt)
+	local t = lovr.timer.getTime()
+	for i = 1, #vertices do
+		local v = vertices[i]
+		local x, y, z = unpack(v)
+		local length = math.sqrt(x ^ 2 + y ^ 2 + z ^ 2)
+		x, y, z = x / length, y / length, z / length
+		local offset = t / 2
+		local n = (1 + lovr.math.noise(x/2 + offset, y/2 + offset, z/2 + offset)) ^ 5
+		n = n * (music:getEnergy() * .1 + .5)
+		x, y, z = x * n, y * n, z * n
+		v[1], v[2], v[3] = x, y, z
+	end
+	mesh:setVertices(vertices)
 end
 
 function lovr.draw()
 	balls.size = music:getEnergy() * .06
-	drawBalls()
+
+
+	-- drawBalls()
+	drawBlob()
 end
 
-function drawBalls()
+-- function drawBalls()
+-- 	local time = lovr.timer.getTime()
+-- 	for dep = -5, 5 do
+-- 		for col = -2, 2 do
+-- 			for row = 0, 3 do
+-- 				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
+-- 				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+-- 				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+--
+-- 				lovr.graphics.setColor(r, g, b)
+-- 				mesh:draw(col, y, z, balls.size)
+-- 			end
+-- 		end
+-- 	end
+-- end
+
+function drawBlob()
 	local time = lovr.timer.getTime()
 	for dep = -5, 5 do
 		for col = -2, 2 do
 			for row = 0, 3 do
 				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
-				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
-				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+				local y = row
+				local z = dep
 
 				lovr.graphics.setColor(r, g, b)
-				lovr.graphics.sphere(col, y, z, balls.size, 0, 0, 0, 0, 10)
+				mesh:draw(col, y, z, .2)
 			end
 		end
 	end
