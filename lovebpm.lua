@@ -1,5 +1,5 @@
 --
--- lovrbpm
+-- lovebpm
 --
 -- Copyright (c) 2016 rxi
 --
@@ -7,13 +7,14 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-local lovrbpm = { _version = "0.0.0" }
+local lovebpm = { _version = "0.0.0" }
 
 local Track = {}
 Track.__index = Track
 
 
-function lovrbpm.newTrack()
+function love
+bpm.newTrack()
   local self = setmetatable({}, Track)
   self.source = nil
   self.offset = 0
@@ -32,7 +33,8 @@ function lovrbpm.newTrack()
 end
 
 
-function lovrbpm.detectBPM(filename, opts)
+function love
+bpm.detectBPM(filename, opts)
   -- Init options table
   opts = opts or {}
   local t = { minbpm = 75, maxbpm = 300 }
@@ -332,4 +334,4 @@ function Track:update()
 end
 
 
-return lovrbpm
+return lovebpm
