@@ -16,11 +16,53 @@ function lovr.load()
 	vertices, indices = icosphere(2)
 	mesh = lovr.graphics.newMesh(vertices, 'triangles')
 	mesh:setVertexMap(indices)
+	showWireframe = false
+	spiraling = true
+	pulsing = true
 end
 
 function lovr.update(dt)
 	flux.update(lovr.timer.getDelta())
 	music:update(dt)
+	-- updateBlob()
+end
+
+function lovr.draw()
+	if pulsing then balls.size = music:getEnergy() * .06 end
+
+	lovr.graphics.setWireframe(showWireframe)
+	drawBalls()
+	-- drawBlob()
+end
+
+function toggleWireframe()
+	showWireframe = showWireframe and false or true
+end
+
+function drawBalls()
+	local time = lovr.timer.getTime()
+	for dep = -5, 5 do
+		for col = -2, 2 do
+			for row = 0, 3 do
+				local y = row
+				local z = dep
+				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
+				if spiraling then y, z = spinBalls(col, row, dep, time) end
+
+				lovr.graphics.setColor(r, g, b)
+				mesh:draw(col, y, z, balls.size)
+			end
+		end
+	end
+end
+
+function spinBalls(col, row, dep, time)
+	local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+	local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+	return y, z
+end
+
+function updateBlob()
 	local t = lovr.timer.getTime()
 	for i = 1, #vertices do
 		local v = vertices[i]
@@ -36,52 +78,12 @@ function lovr.update(dt)
 	mesh:setVertices(vertices)
 end
 
-function lovr.draw()
-	balls.size = music:getEnergy() * .06
-
-
-	-- drawBalls()
-	drawBlob()
-end
-
--- function drawBalls()
--- 	local time = lovr.timer.getTime()
--- 	for dep = -5, 5 do
--- 		for col = -2, 2 do
--- 			for row = 0, 3 do
--- 				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
--- 				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
--- 				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
---
--- 				lovr.graphics.setColor(r, g, b)
--- 				mesh:draw(col, y, z, balls.size)
--- 			end
--- 		end
--- 	end
--- end
-
 function drawBlob()
 	local time = lovr.timer.getTime()
-	for dep = -5, 5 do
-		for col = -2, 2 do
-			for row = 0, 3 do
-				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
-				local y = row
-				local z = dep
-
-				lovr.graphics.setColor(r, g, b)
-				mesh:draw(col, y, z, .2)
-			end
-		end
-	end
-end
-
-function pulseBalls()
-	balls.size = music:getEnergy()
-	local oSize = balls.size
-	local nSize = balls.size * 1.15
-	flux.to(balls, 0.1, { size = nSize })
-	flux.to(balls, 0.1, { size = oSize }):delay(0.15)
+	local r, g, b = hsv(.08 * lovr.timer.getTime() * .5, .5, 1)
+	lovr.graphics.setWireframe(true)
+	lovr.graphics.setColor(r, g, b)
+	mesh:draw(0, 1, -3, .2)
 end
 
 function hsv(h, s, v)
