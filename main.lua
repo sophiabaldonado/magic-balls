@@ -28,7 +28,9 @@ function lovr.update(dt)
 		local length = math.sqrt(x ^ 2 + y ^ 2 + z ^ 2)
 		x, y, z = x / length, y / length, z / length
 		local offset = t / 2
-		local n = (1 + lovr.math.noise(x/2 + offset, y/2 + offset, z/2 + offset)) ^ 5
+		local n = lovr.math.noise(x/2 + offset, y/2 + offset, z/2 + offset)
+		n = n + lovr.math.noise(x * 2 + offset, y * 2 + offset, z * 2 + offset)
+		n = n + lovr.math.noise(x * 4 + offset, y * 4 + offset, z * 4 + offset)
 		n = n * (music:getEnergy() * .1 + .5)
 		x, y, z = x * n, y * n, z * n
 		v[1], v[2], v[3] = x, y, z
@@ -42,6 +44,11 @@ function lovr.draw()
 
 	-- drawBalls()
 	drawBlob()
+	-- lovr.graphics.setDepthTest(nil)
+	lovr.graphics.setWireframe(true)
+	drawBlob(true)
+	lovr.graphics.setWireframe(false)
+	-- lovr.graphics.setDepthTest('lequal', true)	
 end
 
 -- function drawBalls()
@@ -60,14 +67,16 @@ end
 -- 	end
 -- end
 
-function drawBlob()
+function drawBlob(invert)
 	local time = lovr.timer.getTime()
 	for dep = -5, 5 do
 		for col = -2, 2 do
 			for row = 0, 3 do
-				local r, g, b = hsv(.08 * (row + col + dep) + lovr.timer.getTime() * .5, .5, 1)
-				local y = row
-				local z = dep
+				local h = .08 * (row + col + dep) + lovr.timer.getTime() * .5
+				if invert then h = h + .5 end
+				local r, g, b = hsv(h, .5, 1)
+				local y = row + (math.sin(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
+				local z = dep + -(math.cos(time * 3 + col + (row * .9) + select(3, lovr.headset.getPosition())) * .075)
 
 				lovr.graphics.setColor(r, g, b)
 				mesh:draw(col, y, z, .2)
